@@ -1,0 +1,11 @@
+num1 = float(input("Enter First Number : "))
+num2 = float(input("Enter Second Number : "))
+
+print("==========CALCULATOR==========")
+print(f"Sum : {num1 + num2}")
+print(f"Difference : {num1 - num2}")
+print(f"Product : {num1 * num2}")
+print(f"Quotient : {num1 / num2:.2f}")
+print(f"Floor Quotient : {num1 // num2}")
+print(f"Remainder : {num1 % num2}")
+print(f"Power : {num1 ** num2}")
