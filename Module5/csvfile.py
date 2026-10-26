@@ -12,3 +12,9 @@ with open("student.csv", "w", newline="" , encoding="utf-8") as file:
     writer = csv.DictWriter(file,fieldnames=field_names)
     writer.writeheader()
     writer.writerows(students)
+
+with open("student.csv", "r", newline="" , encoding="utf-8") as file:
+    student = csv.DictReader(file)
+
+    for i in student:
+        print(i["id"], i["name"], i["age"])
