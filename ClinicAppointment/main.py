@@ -1,8 +1,13 @@
 
+import os
 import file_operations
 import csv
 
+def clear_console():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 def register_account():
+    clear_console()
     username = input("Enter username : ")
     password = input("Enter password : ")
 
@@ -23,6 +28,7 @@ def register_account():
 
 
 def login():
+    clear_console()
     username = input("Enter username : ")
     password = input("Enter password : ")
 
@@ -30,6 +36,7 @@ def login():
         with open("users.txt", "r", encoding="utf-8") as file:
             for line in file:
                 if line.strip() == f"{username}, {password}":
+                    clear_console()
                     print("Login Successful")
                     loggedin()
                     return
@@ -53,8 +60,8 @@ def count_appointment_by_date():
 def loggedin():
     while True:
         print("\n1. Register Patient Appointment")
-        print("2. View Patient Appointment")
-        print("3. Search Patient Appointment")
+        print("2. Display All Appointment")
+        print("3. Search Appointment")
         print("4. Count Appointments by Date")
         print("5. Logout")
         try:
@@ -72,6 +79,7 @@ def loggedin():
         elif choice == 4:
             count_appointment_by_date()
         elif choice == 5:
+            clear_console()
             print("Logged out successfully.")
             break
         else:
@@ -79,6 +87,7 @@ def loggedin():
 
 
 def menu():
+    clear_console()
     while True:
         print("\n1. Register Account")
         print("2. Login")
@@ -94,6 +103,7 @@ def menu():
         elif choice == 2:
             login()
         elif choice == 3:
+            clear_console()
             print("Exiting program. Goodbye!")
             break
         else:
