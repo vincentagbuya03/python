@@ -1,3 +1,9 @@
+with open("sample.txt", "w", encoding="utf-8") as file:
+    file.write("Student ID: 2024111140\n")
+    file.write("Name: Nick Vincent Agbuya\n")
+    file.write("Course: BSIT\n")
+    file.write("Year: 2nd Year\n")
+
 # grades = [80, 90, 100]
 # change = 0
 
@@ -38,12 +44,12 @@
 # find = input("Enter Student ID : ")
 
 
-with open("student.txt", "r", encoding="utf-8") as file:
-    found = False
-    for line in file:
-        if line.startswith(find):
-            print("Exist:", line.strip())
-            found = True
-            break
-    if not found:
-        print("Not Found")
+# with open("student.txt", "r", encoding="utf-8") as file:
+#     found = False
+#     for line in file:
+#         if line.startswith(find):
+#             print("Exist:", line.strip())
+#             found = True
+#             break
+#     if not found:
+#         print("Not Found")
