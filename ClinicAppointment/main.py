@@ -1,15 +1,89 @@
 
 import os
+import sys
 import file_operations
 import csv
+import getpass
+import hashlib
 
 def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def get_masked_input(prompt="Enter password : ", mask="*"):
+    """Prompt for a password while displaying masked characters (e.g. ***)."""
+    if not sys.stdin.isatty():
+        try:
+            return getpass.getpass(prompt)
+        except Exception:
+            return input(prompt)
+
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    password = []
+
+    if os.name == 'nt':
+        import msvcrt
+        while True:
+            ch = msvcrt.getwch()
+            if ch in ('\r', '\n'):
+                sys.stdout.write('\n')
+                sys.stdout.flush()
+                break
+            elif ch == '\x08':  # Backspace
+                if password:
+                    password.pop()
+                    sys.stdout.write('\b \b')
+                    sys.stdout.flush()
+            elif ch == '\x03':  # Ctrl+C
+                raise KeyboardInterrupt
+            elif ch in ('\x00', '\xe0'):  # Arrow keys / special characters
+                msvcrt.getwch()
+            else:
+                password.append(ch)
+                sys.stdout.write(mask)
+                sys.stdout.flush()
+    else:
+        import tty
+        import termios
+        import select
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            while True:
+                ch = sys.stdin.read(1)
+                if ch in ('\r', '\n'):
+                    sys.stdout.write('\r\n')
+                    sys.stdout.flush()
+                    break
+                elif ch in ('\x7f', '\x08'):  # Backspace or DEL
+                    if password:
+                        password.pop()
+                        sys.stdout.write('\b \b')
+                        sys.stdout.flush()
+                elif ch == '\x03':  # Ctrl+C
+                    raise KeyboardInterrupt
+                elif ch == '\x04':  # Ctrl+D
+                    break
+                elif ch == '\x1b':  # Arrow keys / escape sequence
+                    if select.select([sys.stdin], [], [], 0.05)[0]:
+                        sys.stdin.read(2)
+                else:
+                    password.append(ch)
+                    sys.stdout.write(mask)
+                    sys.stdout.flush()
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    return ''.join(password)
+
+def hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
 def register_account():
     clear_console()
     username = input("Enter username : ")
-    password = input("Enter password : ")
+    password = get_masked_input("Enter password : ", mask="*")
 
 
     try:
@@ -22,24 +96,31 @@ def register_account():
     except FileNotFoundError:
         pass
 
+    hashed_password = hash_password(password)
     with open("users.txt", "a", encoding="utf-8") as file:
-        file.write(f"{username}, {password}\n")
+        file.write(f"{username}, {hashed_password}\n")
     print("Account registered successfully")
 
 
 def login():
     clear_console()
     username = input("Enter username : ")
-    password = input("Enter password : ")
+    password = get_masked_input("Enter password : ", mask="*")
+
+    hashed_password = hash_password(password)
 
     try:
         with open("users.txt", "r", encoding="utf-8") as file:
             for line in file:
-                if line.strip() == f"{username}, {password}":
-                    clear_console()
-                    print("Login Successful")
-                    loggedin()
-                    return
+                parts = line.strip().split(", ")
+                if len(parts) >= 2:
+                    stored_username = parts[0]
+                    stored_password = parts[1]
+                    if stored_username == username and (stored_password == hashed_password or stored_password == password):
+                        clear_console()
+                        print("Login Successful")
+                        loggedin()
+                        return
         print("Invalid username or password")
     except FileNotFoundError:
         print("No accounts found. Please register an account first.")

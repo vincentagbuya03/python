@@ -8,25 +8,63 @@ def clear_console():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
+def read_appointments():
+    """Reads all appointments from appointments.csv safely, supporting both files with and without headers."""
+    if not os.path.exists("appointments.csv") or os.path.getsize("appointments.csv") == 0:
+        return []
+
+    appointments = []
+    with open("appointments.csv", "r", newline="", encoding="utf-8") as file:
+        reader = csv.reader(file)
+        header = None
+        for row in reader:
+            if not row or not any(cell.strip() for cell in row):
+                continue
+            first = row[0].strip().lower()
+            if first in ("id", "appointment id"):
+                header = [h.strip().lower() for h in row]
+                continue
+
+            if header:
+                row_dict = dict(zip(header, row))
+                appointments.append({
+                    "id": row_dict.get("id", "").strip(),
+                    "name": (row_dict.get("name") or row_dict.get("patient name", "")).strip(),
+                    "age": row_dict.get("age", "").strip(),
+                    "date": row_dict.get("date", "").strip(),
+                    "time": row_dict.get("time", "").strip(),
+                    "reason": row_dict.get("reason", "").strip()
+                })
+            else:
+                appointments.append({
+                    "id": row[0].strip() if len(row) > 0 else "",
+                    "name": row[1].strip() if len(row) > 1 else "",
+                    "age": row[2].strip() if len(row) > 2 else "",
+                    "date": row[3].strip() if len(row) > 3 else "",
+                    "time": row[4].strip() if len(row) > 4 else "",
+                    "reason": row[5].strip() if len(row) > 5 else ""
+                })
+    return appointments
+
+
+def get_next_appointment_id():
+    """Computes the next appointment ID (e.g. P001 -> P002) based on existing records."""
+    appointments = read_appointments()
+    ids = []
+    for appt in appointments:
+        val = appt.get("id", "")
+        digits = "".join(filter(str.isdigit, val))
+        if digits:
+            ids.append(int(digits))
+    if ids:
+        return f"P{max(ids) + 1:03d}"
+    return "P001"
+
+
 def register_appointment():
     clear_console()
     print("=" * 100)
-    appointment_id = "P001"
-    try:
-        with open("appointments.csv", "a", newline="", encoding="utf-8") as file:
-            reader = csv.DictReader(file)
-            ids = []
-            for row in reader:
-                val = row.get("id") or row.get("Appointment ID") or ""
-                digits = "".join(filter(str.isdigit, val))
-                if digits:
-                    ids.append(int(digits))
-            if ids:
-                appointment_id = f"P{max(ids) + 1:03d}"
-            else:
-                appointment_id = "P001"
-    except (FileNotFoundError, ValueError):
-        appointment_id = "P001"
+    appointment_id = get_next_appointment_id()
 
     print(f"Generated Appointment ID : {appointment_id}")
     name = input("Enter patient name : ")
@@ -34,13 +72,14 @@ def register_appointment():
         age = int(input("Enter patient age : "))
     except ValueError:
         print("Invalid age!")
+        print("=" * 100)
         return
     date = input("Enter appointment date : ")
     time = input("Enter appointment time : ")
     reason = input("Enter reason for appointment : ")
 
     file_exists = os.path.exists("appointments.csv") and os.path.getsize("appointments.csv") > 0
-    with open("appointments.csv", "w", newline="", encoding="utf-8") as file:
+    with open("appointments.csv", "a", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=field_names)
         if not file_exists:
             writer.writeheader()
@@ -59,23 +98,12 @@ def register_appointment():
 def view_appointment():
     clear_console()
     print("=" * 100)
-    try:
-        with open("appointments.csv", "r", newline="", encoding="utf-8") as file:
-            reader = csv.DictReader(file)
-            rows = list(reader)
-            if not rows:
-                print("No appointments found.")
-            else:
-                for row in rows:
-                    id_val = row.get("id") or row.get("Appointment ID") or ""
-                    name_val = row.get("name") or row.get("Patient Name") or ""
-                    age_val = row.get("age") or row.get("Age") or ""
-                    date_val = row.get("date") or row.get("Date") or ""
-                    time_val = row.get("time") or row.get("Time") or ""
-                    reason_val = row.get("reason") or row.get("Reason") or ""
-                    print(f"{id_val}, {name_val}, {age_val}, {date_val}, {time_val}, {reason_val}")
-    except FileNotFoundError:
+    appointments = read_appointments()
+    if not appointments:
         print("No appointments found.")
+    else:
+        for appt in appointments:
+            print(f"{appt['id']}, {appt['name']}, {appt['age']}, {appt['date']}, {appt['time']}, {appt['reason']}")
     print("=" * 100)
 
 
@@ -84,26 +112,14 @@ def search_appointment():
     print("=" * 100)
     name = input("Enter patient name : ")
     found = False
-    try:
-        with open("appointments.csv", "r", newline="", encoding="utf-8") as file:
-            reader = csv.DictReader(file)
-            search_term = name.strip().lower()
-            for row in reader:
-                id_val = row.get("id") or row.get("Appointment ID") or ""
-                name_val = row.get("name") or row.get("Patient Name") or ""
-                age_val = row.get("age") or row.get("Age") or ""
-                date_val = row.get("date") or row.get("Date") or ""
-                time_val = row.get("time") or row.get("Time") or ""
-                reason_val = row.get("reason") or row.get("Reason") or ""
-
-                # Search by patient name or by ID
-                if search_term in name_val.lower() or search_term == id_val.strip().lower():
-                    print(f"{id_val}, {name_val}, {age_val}, {date_val}, {time_val}, {reason_val}")
-                    found = True
-        if not found:
-            print("No appointment found.")
-    except FileNotFoundError:
-        print("No appointments found.")
+    appointments = read_appointments()
+    search_term = name.strip().lower()
+    for appt in appointments:
+        if search_term in appt["name"].lower() or search_term == appt["id"].strip().lower():
+            print(f"{appt['id']}, {appt['name']}, {appt['age']}, {appt['date']}, {appt['time']}, {appt['reason']}")
+            found = True
+    if not found:
+        print("No appointment found.")
     print("=" * 100)
 
 
@@ -112,15 +128,12 @@ def count_appointment_by_date():
     print("=" * 100)
     date = input("Enter date : ")
     count = 0
-    try:
-        with open("appointments.csv", "r", newline="", encoding="utf-8") as file:
-            reader = csv.DictReader(file)
-            search_date = date.lower().replace(" ", "")
-            for row in reader:
-                date_val = row.get("date") or row.get("Date") or ""
-                if search_date in date_val.lower().replace(" ", ""):
-                    count += 1
-        print(f"Number of appointments on {date} : {count}")
-    except FileNotFoundError:
-        print(f"Number of appointments on {date} : 0")
+    appointments = read_appointments()
+    search_date = date.lower().replace(" ", "")
+    for appt in appointments:
+        if search_date in appt["date"].lower().replace(" ", ""):
+            count += 1
+    print(f"Number of appointments on {date} : {count}")
+    print("=" * 100)
+
     print("=" * 100)
